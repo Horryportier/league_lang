@@ -1,9 +1,10 @@
+
 use std::fmt::Display;
 
 use anyhow::{Ok, Result};
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Ident(String),
     Int(String),
@@ -84,16 +85,28 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    fn new(input: String) -> Lexer {
-        let mut lex = Lexer {
+    pub fn new() -> Lexer {
+        let lex = Lexer {
             position: 0,
             read_pasition: 0,
             ch: 0,
-            input: input.into_bytes(),
+            input: "".into(),
         };
-        lex.read_char();
 
         return lex;
+    }
+
+    pub fn parse(&mut self, input: String) -> Result<Vec<Token>> {
+        self.input = input.into();
+
+        let mut tokens: Vec<Token> = Vec::new();
+        let mut curr: Token = self.next_token()?;
+        let _= curr;
+        while !(self.position >= self.input.len()) {
+            curr = self.next_token()?;
+            tokens.push(curr)
+        }
+        Ok(tokens)
     }
 
     fn next_token(&mut self) -> Result<Token> {
@@ -207,7 +220,8 @@ mod test {
     #[test]
     fn get_next_token() -> Result<()> {
         let input = "=+(){},;";
-        let mut lexer = Lexer::new(input.into());
+        let mut lexer = Lexer::new();
+        
 
         let tokens = vec![
             Token::Assign,
@@ -220,11 +234,8 @@ mod test {
             Token::Semicolon,
         ];
 
-        for token in tokens {
-            let next_token = lexer.next_token()?;
-            println!("expected {:?}, recived {:?}", token, next_token);
-            assert_eq!(token, next_token);
-        }
+            assert_eq!(tokens, lexer.parse(input.into())?);
+
         return Ok(());
     }
 
@@ -248,7 +259,7 @@ mod test {
         10 != 9;
         "#;
 
-        let mut lex = Lexer::new(input.into());
+        let mut lex = Lexer::new();
 
         let tokens = vec![
             Token::Let,
@@ -327,12 +338,30 @@ mod test {
             Token::EOF,
         ];
 
-        for token in tokens {
-            let next_token = lex.next_token()?;
-            println!("expected: {:?}, received {:?}", token, next_token);
-            assert_eq!(token, next_token);
-        }
+            assert_eq!(tokens,  lex.parse(input.into())?);
 
         return Ok(());
+    }
+
+    #[test]
+    fn test_parse() -> Result<()>{
+        let input = "1+2/3*9".into();
+        let tokens = vec![
+            Token::Int("1".into()),
+            Token::Plus,
+            Token::Int("2".into()),
+            Token::ForwardSlash,
+            Token::Int("3".into()),
+            Token::Asterisk,
+            Token::Int("9".into()),
+        ];
+
+        let mut lexer = Lexer::new();
+
+        let res = lexer.parse(input)?;
+        
+        assert_eq!(tokens, res);
+
+        Ok(())
     }
 }
